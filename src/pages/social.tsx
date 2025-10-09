@@ -305,7 +305,8 @@ export default function Social() {
             Bảng giá dịch vụ 💬
           </h1>
           <p className="mt-2 text-center text-slate-600 dark:text-slate-300 text-sm sm:text-base">
-            Mobile: mỗi bảng hiển thị 1 hàng dọc • Laptop/Desktop: chia 2 cột 2x2 cho Instagram.
+            Tự tin gần 10 năm trong lĩnh vực tăng tương tác mạng xã hội
+            Zalo/Call/Sms: 0909 172 556
           </p>
 
           <div className="mt-8 sm:mt-10 flex flex-col gap-8 sm:gap-10">
