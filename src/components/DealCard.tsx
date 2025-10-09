@@ -1,8 +1,11 @@
+"use client";
+
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { Deal } from "@/types/deal";
 
-const fmt = (n: number) => (n ?? 0).toLocaleString("vi-VN") + "đ";
+const fmt = (n?: number | null) =>
+  ((n ?? 0) as number).toLocaleString("vi-VN") + "đ";
 const PH = "https://picsum.photos/800/600?blur=2";
 
 // màu pastel theo category
@@ -27,7 +30,7 @@ export default function DealCard({ deal }: { deal: Deal }) {
       ? Math.max(0, Math.round((1 - deal.price / deal.old_price) * 100))
       : null;
 
-  // CTA ngẫu nhiên cho vibe Gen Z (chỉ tạo 1 lần)
+  // CTA ngẫu nhiên (only-once)
   const cta = useMemo(() => {
     const list = ["Múc ngay 😎", "Chốt lẹ đi 🫣", "Thêm wishlist 💖", "Xem deal"];
     return list[Math.floor(Math.random() * list.length)];
@@ -50,10 +53,12 @@ export default function DealCard({ deal }: { deal: Deal }) {
           src={src}
           alt={deal.name}
           fill
-          sizes="(max-width:768px) 100vw, 400px"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
           className="object-cover transition-transform duration-500 motion-safe:group-hover:scale-[1.03]"
           onError={() => setSrc(PH)}
           unoptimized={src === PH}
+          priority={false}
+          loading="lazy"
         />
 
         {/* wishlist */}
@@ -70,9 +75,7 @@ export default function DealCard({ deal }: { deal: Deal }) {
           <span
             className={[
               "text-lg leading-none transition-transform",
-              wish
-                ? "scale-110"
-                : "group-hover:scale-110 motion-safe:duration-300",
+              wish ? "scale-110" : "group-hover:scale-110 motion-safe:duration-300",
             ].join(" ")}
           >
             {wish ? "💖" : "🤍"}
@@ -81,18 +84,27 @@ export default function DealCard({ deal }: { deal: Deal }) {
 
         {/* price ribbon */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 p-3">
-          <div className="rounded-2xl px-3 py-2 text-white flex items-center gap-3 shadow-sm
-                          bg-black/55 backdrop-blur">
-            <span className="text-lg font-extrabold">{fmt(deal.price)}</span>
+          <div
+            className={[
+              "rounded-2xl px-3 py-2 text-white flex items-center gap-3 shadow-sm",
+              "bg-black/55 backdrop-blur",
+            ].join(" ")}
+          >
+            {/* giá KHÔNG xuống dòng */}
+            <span className="text-lg font-extrabold tabular-nums whitespace-nowrap">
+              {fmt(deal.price)}
+            </span>
+
             {deal.old_price && (
-              <span className="text-xs/4 line-through opacity-80">
+              <span className="text-xs/4 line-through opacity-80 tabular-nums whitespace-nowrap">
                 {fmt(deal.old_price)}
               </span>
             )}
+
             {drop !== null && (
               <span
                 className="ml-auto text-[11px] font-semibold rounded-full px-2 py-1
-                           bg-gradient-to-r from-pink-500 to-indigo-500"
+                           bg-gradient-to-r from-pink-500 to-indigo-500 whitespace-nowrap"
               >
                 -{drop}%
               </span>
@@ -124,12 +136,13 @@ export default function DealCard({ deal }: { deal: Deal }) {
               {deal.category}
             </span>
           )}
-          {/* emoji nhỏ khi hover cho cảm giác “alive” */}
+          {/* emoji nhỏ khi hover */}
           <span className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
             ✨
           </span>
         </div>
 
+        {/* CTA: giữ 1 tap target to trên mobile */}
         <a
           href={deal.affiliate_link ? `/api/go/${deal.slug}` : `/go/${deal.slug}`}
           target="_blank"
@@ -137,16 +150,15 @@ export default function DealCard({ deal }: { deal: Deal }) {
           aria-disabled={inactive}
           className={[
             "mt-auto inline-flex w-full items-center justify-center rounded-xl",
-            "font-semibold py-2.5 transition-all",
+            "font-semibold py-3 sm:py-2.5 transition-all",
             "bg-slate-900 text-white hover:bg-slate-800",
             "dark:bg-white dark:text-slate-900 dark:hover:bg-white/90",
             "disabled:opacity-50 disabled:cursor-not-allowed",
-            "shadow-sm hover:shadow",
-            "backdrop-blur",
+            "shadow-sm hover:shadow backdrop-blur",
           ].join(" ")}
           {...(inactive ? { onClick: (e) => e.preventDefault() } : {})}
         >
-          {cta}
+          <span className="whitespace-nowrap">{cta}</span>
         </a>
       </div>
     </article>

@@ -79,7 +79,7 @@ export default function Social() {
     sections: [
       {
         title: "Follow",
-        kind: "simple",
+        kind: "follow_global",
         items: [
           { label: "100 Follow", value: "15.000 đ" },
           { label: "500 Follow", value: "60.000 đ" },
@@ -116,7 +116,7 @@ export default function Social() {
     sections: [
       {
         title: "Follow",
-        kind: "simple",
+        kind: "follow_global",
         items: [
           { label: "500 Follow", value: "50.000 đ" },
           { label: "1.000 Follow", value: "100.000 đ" },
@@ -174,46 +174,77 @@ export default function Social() {
               </div>
 
               <div className="overflow-x-auto">
-                {sec.kind === "follow_vn" && (
-                  <table className="w-full min-w-[370px] text-[13px] sm:text-sm tabular-nums">
-                    <thead className="font-semibold bg-white/10">
-                      <tr>
-                        <th className="py-2 px-3 text-left">Follow</th>
-                        <th className="py-2 px-3 text-right whitespace-nowrap">Bảo hành 7 ngày</th>
-<th className="py-2 px-3 text-right whitespace-nowrap">Bảo hành 1 tháng</th>
+              {sec.kind === "follow_vn" && (
+  // ❌ bỏ kéo ngang, bảng luôn fit màn
+  <div className="overflow-x-hidden">
+    <table className="w-full table-fixed text-[12px] sm:text-[15px] tabular-nums border-collapse">
+      {/* Chia tỉ lệ cột để không bị ép chữ */}
+      <colgroup>
+        <col className="w-[40%]" />   {/* Follow */}
+        <col className="w-[30%]" />   {/* 7 ngày */}
+        <col className="w-[30%]" />   {/* 1 tháng */}
+      </colgroup>
 
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sec.items.map((r) => (
-                        <tr key={r.label} className="border-b last:border-0 border-white/15">
-<td className="py-2.5 px-3 whitespace-nowrap">{r.label}</td>
-<td className="py-2.5 px-3 text-right font-semibold whitespace-nowrap">{r.g7 ?? "–"}</td>
-                          <td className="py-2.5 px-3 text-right font-extrabold whitespace-nowrap">{r.g30 ?? "–"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+      <thead className="bg-white/10 font-semibold">
+        <tr>
+          <th className="py-2 px-2 sm:px-3 text-left whitespace-nowrap">Follow</th>
 
-                {sec.kind === "follow_global" && (
-                  <table className="w-full min-w-[260px] text-[13px] sm:text-sm tabular-nums">
-                    <thead className="font-semibold bg-white/10">
-                      <tr>
-                        <th className="py-2 px-3 text-left">Follow</th>
-                        <th className="py-2 px-3 text-right">Bảo hành 1 tháng</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sec.items.map((r) => (
-                        <tr key={r.label} className="border-b last:border-0 border-white/15">
-                          <td className="py-2.5 px-3">{r.label}</td>
-                          <td className="py-2.5 px-3 text-right font-extrabold whitespace-nowrap">{r.g30 ?? "–"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+          {/* 👉 Rút gọn tiêu đề ở mobile, full ở sm+ */}
+          <th className="py-2 px-2 sm:px-3 text-right whitespace-nowrap">
+            <span className="sm:hidden">BH 7 ngày</span>
+            <span className="hidden sm:inline">Bảo hành 7 ngày</span>
+          </th>
+          <th className="py-2 px-2 sm:px-3 text-right whitespace-nowrap">
+            <span className="sm:hidden">BH 1 tháng</span>
+            <span className="hidden sm:inline">Bảo hành 1 tháng</span>
+          </th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {sec.items.map((r) => (
+          <tr key={r.label} className="border-b last:border-0 border-white/15">
+            {/* giữ 1 dòng nhưng giảm padding để vừa màn */}
+            <td className="py-2.5 px-2 sm:px-3 text-left whitespace-nowrap">
+              {r.label}
+            </td>
+            <td className="py-2.5 px-2 sm:px-3 text-right font-semibold whitespace-nowrap">
+              {r.g7 ?? "–"}
+            </td>
+            <td className="py-2.5 px-2 sm:px-3 text-right font-extrabold whitespace-nowrap">
+              {r.g30 ?? "–"}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
+
+
+
+{sec.kind === "follow_global" && (
+  <table className="w-full min-w-[260px] text-[13px] sm:text-sm tabular-nums">
+    <thead className="font-semibold bg-white/10">
+      <tr>
+        <th className="py-2 px-3 text-left">Follow</th>
+        <th className="py-2 px-3 text-right whitespace-nowrap">Bảo hành 1 tháng</th>
+      </tr>
+    </thead>
+    <tbody>
+      {sec.items.map((r) => (
+        <tr key={r.label} className="border-b last:border-0 border-white/15">
+          <td className="py-2.5 px-3">{r.label}</td>
+          {/* 👇 đọc g30, fallback về value nếu data cũ */}
+          <td className="py-2.5 px-3 text-right font-extrabold whitespace-nowrap">
+            {r.g30 ?? r.value ?? "–"}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+)}
+
 
                 {sec.kind === "simple" && (
                   <table className="w-full min-w-[260px] text-[13px] sm:text-sm tabular-nums">
