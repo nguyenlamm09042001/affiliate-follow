@@ -233,7 +233,7 @@ export default function Social() {
         </div>
 
         <a
-          href="https://zalo.me/"
+          href="https://zalo.me/0909172556"
           target="_blank"
           rel="noopener noreferrer"
           className="mt-5 inline-block w-full rounded-xl bg-white text-slate-900 text-center font-semibold py-2.5 hover:bg-gray-100 transition"
