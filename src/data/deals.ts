@@ -1,0 +1,58 @@
+import { Deal } from "@/types/deal";
+
+export const deals: Deal[] = [
+  {
+    slug: "may-ep-cham-sunhouse",
+    name: "Máy ép chậm Sunhouse JE-6800",
+    price: 980_000,
+    old_price: 1_290_000,
+    image: "https://cf.shopee.vn/file/sg-11134201-22110-abc123",
+    affiliate_link: "https://shope.ee/8KxZ8kWJmO",
+    category: "Gia dụng",
+  },
+  {
+    slug: "noi-chien-khong-dau-4l",
+    name: "Nồi chiên không dầu 4L",
+    price: 699_000,
+    old_price: 1_299_000,
+    image: "https://cf.shopee.vn/file/sg-11134201-22110-def456",
+    affiliate_link: "https://shope.ee/2aBCxyZPq3",
+    category: "Gia dụng",
+  },
+  {
+    slug: "ban-phim-co-ks87",
+    name: "Bàn phím cơ KS87 (Hot-swap)",
+    price: 590_000,
+    old_price: 890_000,
+    image: "https://img.lazcdn.com/images/xyz-ks87",
+    affiliate_link: "https://s.lazada.vn/s.abcxyz",
+    category: "Điện tử",
+  },
+  {
+    slug: "tai-nghe-bluetooth-anc",
+    name: "Tai nghe Bluetooth ANC",
+    price: 349_000,
+    old_price: 599_000,
+    image: "https://lzd-img-global.slatic.net/g/p/some-image",
+    affiliate_link: "https://s.lazada.vn/s.qwerty",
+    category: "Điện tử",
+  },
+  {
+    slug: "sua-rua-mat-centella",
+    name: "Sữa rửa mặt Centella 150ml",
+    price: 119_000,
+    old_price: 169_000,
+    image: "https://cf.shopee.vn/file/sg-11134201-22110-ghi789",
+    affiliate_link: "https://shope.ee/7UvWxYkLMN",
+    category: "Skincare",
+  },
+  {
+    slug: "binh-giu-nhiet-500ml",
+    name: "Bình giữ nhiệt 500ml",
+    price: 159_000,
+    old_price: 259_000,
+    image: "https://cf.shopee.vn/file/sg-11134201-22110-jkl012",
+    affiliate_link: "https://shope.ee/5TuvAbCdEf",
+    category: "Lifestyle",
+  },
+];
