@@ -278,7 +278,7 @@ export default function Social() {
   return (
     <>
       <Head>
-        <title>kimdeal — Dịch vụ Follow & Tương tác</title>
+        <title>LameaLux — Dịch vụ Follow & Tương tác</title>
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-[#E4ECFF] via-[#F6F4FF] to-[#F9FBFF] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -287,7 +287,7 @@ export default function Social() {
   <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
     <div className="flex items-center gap-3">
       <span className="h-8 w-8 rounded-xl bg-gradient-to-tr from-pink-500 to-purple-600" />
-      <Link href="/" className="font-bold tracking-tight text-slate-900 dark:text-white">kimdeal</Link>
+      <Link href="/" className="font-bold tracking-tight text-slate-900 dark:text-white">LameaLux</Link>
     </div>
 
     {/* 👇 đổi hidden sm:flex -> flex sm:flex */}
@@ -315,7 +315,7 @@ export default function Social() {
           </div>
 
           <footer className="py-10 text-center text-xs text-gray-600 dark:text-slate-300">
-            © {new Date().getFullYear()} kimdeal — Follow Service
+            © {new Date().getFullYear()} LameaLux — Follow Service
           </footer>
         </main>
       </div>

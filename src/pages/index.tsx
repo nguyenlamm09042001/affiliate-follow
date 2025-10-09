@@ -23,7 +23,7 @@ export default function Home() {
 
   // dark mode toggle
   useEffect(() => {
-    const saved = localStorage.getItem("kimdeal-theme");
+    const saved = localStorage.getItem("LameaLux-theme");
     const isDark = saved
       ? saved === "dark"
       : window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -34,7 +34,7 @@ export default function Home() {
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("kimdeal-theme", next ? "dark" : "light");
+    localStorage.setItem("LameaLux-theme", next ? "dark" : "light");
   };
 
   const deals = data?.items ?? [];
@@ -55,7 +55,7 @@ export default function Home() {
 
   return (
     <>
-      <Head><title>kimdeal — Template magazine</title></Head>
+      <Head><title>LameaLux — Template magazine</title></Head>
 
       {/* page bg (có dark) */}
       <div className="min-h-screen bg-gradient-to-br from-[#FAF7FF] via-[#F3F7FF] to-[#EAFBF3] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
@@ -166,7 +166,7 @@ export default function Home() {
           )}
 
           <footer className="py-10 text-center text-xs text-gray-600 dark:text-slate-300">
-            © {new Date().getFullYear()} kimdeal
+            © {new Date().getFullYear()} LameaLux
           </footer>
         </main>
       </div>
