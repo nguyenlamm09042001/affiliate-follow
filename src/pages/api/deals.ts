@@ -1,53 +1,59 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* pages/api/deals.ts */
 import type { NextApiRequest, NextApiResponse } from "next";
-import { createClient } from "@supabase/supabase-js";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+// (nếu dùng app router thì không cần 2 dòng dưới; pages/api mặc định là node runtime)
+export const config = {
+  api: { bodyParser: false },
+};
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    if (!url || !anon) {
+    if (!url || !service) {
       return res.status(500).json({
         error: "missing_env",
-        message: "Thiếu Supabase URL hoặc ANON KEY",
+        message: "Thiếu SUPABASE URL hoặc SERVICE_ROLE_KEY",
+        hasUrl: !!url,
+        hasService: !!service,
       });
     }
 
-    const sb = createClient(url, anon, {
-      auth: { persistSession: false },
+    // chuẩn hoá URL (tránh thừa /)
+    const base = url.replace(/\/+$/, "");
+
+    // gọi REST trực tiếp để loại trừ vấn đề SDK
+    const endpoint = `${base}/rest/v1/deals?select=id,slug,name,price,old_price,image,category,active,affiliate_link,updated_at&order=updated_at.desc&limit=100`;
+
+    const r = await fetch(endpoint, {
+      headers: {
+        apikey: service,
+        Authorization: `Bearer ${service}`,
+        // Nếu dùng RLS và muốn query với anon hãy đổi sang anon key
+        // nhưng ở đây dùng service role để bypass RLS
+      },
+      // đảm bảo không cache ở edge/CDN
+      cache: "no-store",
     });
 
-    const { data, error } = await sb
-      .from("deals")
-      .select(
-        "id, slug, name, price, old_price, image, category, active, affiliate_link, updated_at"
-      )
-      .order("id", { ascending: false });
+    const txt = await r.text();
+    if (!r.ok) {
+      return res.status(r.status).json({
+        error: "supabase_rest_error",
+        status: r.status,
+        body: txt,
+        endpoint,
+      });
+    }
 
-    if (error) throw error;
-
-    const items = (data ?? []).map((d: Record<string, any>) => ({
-      id: d.id,
-      slug: d.slug,
-      name: d.name,
-      price: d.price ?? undefined,
-      old_price: d.old_price ?? undefined,
-      image: d.image ?? "",
-      category: d.category ?? "",
-      active: d.active ?? false,
-      affiliate_link: d.affiliate_link ?? "",
-      updated_at: d.updated_at ?? "",
-    }));
-
-    res.status(200).json({ items });
-  } catch (err: any) {
-    res.status(500).json({
+    const data = txt ? JSON.parse(txt) : [];
+    return res.status(200).json({ items: data ?? [] });
+  } catch (e: any) {
+    return res.status(500).json({
       error: "fetch_failed",
-      message: err.message ?? String(err),
+      message: String(e?.message || e),
+      stack: e?.stack || null,
     });
   }
 }
