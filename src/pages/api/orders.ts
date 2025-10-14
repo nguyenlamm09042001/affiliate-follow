@@ -6,9 +6,7 @@ function assertEnv() {
   const miss: string[] = [];
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) miss.push("NEXT_PUBLIC_SUPABASE_URL");
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) miss.push("SUPABASE_SERVICE_ROLE_KEY");
-  if (miss.length) {
-    throw new Error(`Missing env: ${miss.join(", ")}`);
-  }
+  if (miss.length) throw new Error(`Missing env: ${miss.join(", ")}`);
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -19,15 +17,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!, // server-only key
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false } }
     );
 
-    const { service_code, price_vnd, target_url } = (req.body || {}) as {
-      service_code?: string;
-      price_vnd?: number;
-      target_url?: string;
-    };
+    const {
+      service_code,
+      price_vnd,         // number
+      target_url,        // string
+      payment_method,    // string | null
+      guest_id,          // optional
+      contact_email,     // optional
+      note               // optional
+    } = (req.body || {}) as any;
 
     if (!service_code || !price_vnd || !target_url) {
       return res.status(400).json({ error: "Thiếu dữ liệu" });
@@ -37,8 +39,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .from("orders")
       .insert({
         service_code,
-        total_vnd: price_vnd,
         target_url,
+        payment_method: payment_method ?? "bank_transfer",
+        subtotal_vnd: price_vnd,
+        discount_vnd: 0,
+        total_vnd: price_vnd,
+        guest_id: guest_id ?? null,
+        contact_email: contact_email ?? null,
+        note: note ?? null,
         status: "pending",
       })
       .select("id")
