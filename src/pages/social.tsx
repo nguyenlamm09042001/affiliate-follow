@@ -1,3 +1,4 @@
+// src/pages/social.tsx
 import Head from "next/head";
 import Link from "next/link";
 import { useState } from "react";
@@ -8,7 +9,7 @@ type Row = { label: string; value?: string; g7?: string; g30?: string };
 type SectionCommon = { title: string };
 type SectionFollowVN = SectionCommon & { kind: "follow_vn"; items: Row[] };
 type SectionFollowGL = SectionCommon & { kind: "follow_global"; items: Row[] };
-type SectionSimple = SectionCommon & { kind: "simple"; items: Row[] };
+type SectionSimple   = SectionCommon & { kind: "simple"; items: Row[] };
 type Section = SectionFollowVN | SectionFollowGL | SectionSimple;
 
 type Platform = {
@@ -21,65 +22,55 @@ type Platform = {
 export default function Social() {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-const [pendingItem, setPendingItem] = useState<{ label: string; price: string } | null>(null);
-const [showQR, setShowQR] = useState(false);
-const [currentOrder, setCurrentOrder] = useState<{ id: string; amount: number } | null>(null);
+  const [pendingItem, setPendingItem] = useState<{ label: string; price: string } | null>(null);
+  const [showQR, setShowQR] = useState(false);
+  const [currentOrder, setCurrentOrder] = useState<{ id: string; amount: number } | null>(null);
 
+  // Bấm Order -> hỏi link
+  const handleBuy = (label: string, price: string) => {
+    setPendingItem({ label, price });
+    setShowModal(true);
+  };
 
-  // ⚙️ Hàm xử lý khi bấm “Đặt ngay”
-// ⚙️ Hàm xử lý khi bấm “Đặt ngay” (có hỏi link trước)
-const handleBuy = (label: string, price: string) => {
-  setPendingItem({ label, price });
-  setShowModal(true);
-};
+  // Nhập link -> tạo order + mở VietQR
+  const handleConfirmLink = async (targetUrl: string) => {
+    if (!pendingItem) return;
+    const { label, price } = pendingItem;
 
-// Sau khi nhập link xong -> chỉ VietQR
-const handleConfirmLink = async (targetUrl: string) => {
-  if (!pendingItem) return;
-  const { label, price } = pendingItem;
+    try {
+      setLoading(true);
+      setShowModal(false);
 
-  try {
-    setLoading(true);
-    setShowModal(false);
+      const cleanPrice = parseInt(price.replace(/\D/g, ""), 10);
 
-    const cleanPrice = parseInt(price.replace(/\D/g, ""), 10);
+      const orderRes = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          service_code: label,
+          price_vnd: cleanPrice,
+          target_url: targetUrl,
+          payment_method: "bank_transfer",
+        }),
+      });
 
-    // 1) Tạo order
-    const orderRes = await fetch("/api/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        service_code: label,
-        price_vnd: cleanPrice,
-        target_url: targetUrl,
-        payment_method: "bank_transfer",        // (tùy) ghi nhận phương thức
-      }),
-    });
+      const orderData = await orderRes.json();
+      if (!orderRes.ok) throw new Error(orderData?.error || "Tạo đơn thất bại");
 
-    const orderData = await orderRes.json();
-    if (!orderRes.ok) throw new Error(orderData?.error || "Tạo đơn thất bại");
-    const order_id = orderData.order_id;
-
-    // 2) Mở modal VietQR cho đơn vừa tạo
-    setCurrentOrder({ id: order_id, amount: cleanPrice });
-    setShowQR(true);
-  } catch (err: any) {
-    console.error(err);
-    alert(err.message || "Có lỗi xảy ra");
-  } finally {
-    setLoading(false);
-    setPendingItem(null);
-  }
-};
-
-
-
-
+      setCurrentOrder({ id: orderData.order_id, amount: cleanPrice });
+      setShowQR(true);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Có lỗi xảy ra");
+    } finally {
+      setLoading(false);
+      setPendingItem(null);
+    }
+  };
 
   // ===========================
-  // 🟣 DỮ LIỆU BẢNG GIÁ
+  // 🟣 DATA
   // ===========================
-
   const instagram: Platform = {
     name: "Instagram 📸",
     color: "from-pink-500 to-purple-600",
@@ -214,41 +205,40 @@ const handleConfirmLink = async (targetUrl: string) => {
 
   const platforms: Platform[] = [instagram, tiktok, facebook];
 
-  
-
   // ===========================
-  // 🟣 COMPONENT CARD
+  // 🟣 COMPONENTS
   // ===========================
-  const Card = ({ pf }: { pf: Platform }) => (
-    <section
-      className={`rounded-3xl overflow-hidden shadow-md border border-black/5 dark:border-white/10 bg-gradient-to-r ${pf.color} text-white`}
+  const ActionBtn: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = (props) => (
+    <button
+      {...props}
+      className={`inline-flex items-center justify-center whitespace-nowrap rounded-md bg-white/20 hover:bg-white/30
+                  text-[12px] sm:text-[13px] font-medium px-2.5 py-1 transition-all active:scale-95 disabled:opacity-60
+                  ${props.className || ""}`}
     >
+      Order
+    </button>
+  );
+
+  const Card = ({ pf }: { pf: Platform }) => (
+    <section className={`rounded-3xl overflow-hidden shadow-md border border-black/5 dark:border-white/10 bg-gradient-to-r ${pf.color} text-white`}>
       <div className="p-4 sm:p-6 md:p-8">
         <div className="text-center mb-5">
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            {pf.name}
-          </h2>
-          {pf.desc && (
-            <p className="mt-1 text-xs sm:text-sm opacity-90">{pf.desc}</p>
-          )}
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{pf.name}</h2>
+          {pf.desc && <p className="mt-1 text-xs sm:text-sm opacity-90">{pf.desc}</p>}
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
           {pf.sections.map((sec, i) => (
-            <article
-              key={sec.title + i}
-              className="rounded-2xl bg-white/10 ring-1 ring-white/10 backdrop-blur-sm overflow-hidden"
-            >
+            <article key={sec.title + i} className="rounded-2xl bg-white/10 ring-1 ring-white/10 backdrop-blur-sm overflow-hidden">
               <div className="px-3 sm:px-4 py-2.5 border-b border-white/15">
-                <h3 className="font-semibold text-sm sm:text-base">
-                  {sec.title}
-                </h3>
+                <h3 className="font-semibold text-sm sm:text-base">{sec.title}</h3>
               </div>
 
-              <div className="overflow-x-hidden">
+              {/* bảng cuộn nhẹ trên mobile */}
+              <div className="overflow-x-auto">
                 {/* 🇻🇳 FOLLOW VN */}
                 {sec.kind === "follow_vn" && (
-                  <table className="w-full text-[12px] sm:text-[15px] tabular-nums border-collapse">
+                  <table className="w-full text-[12px] sm:text-[15px] tabular-nums border-collapse min-w-[360px]">
                     <thead className="bg-white/10 font-semibold">
                       <tr>
                         <th className="py-2 px-2 text-left">Follow</th>
@@ -258,38 +248,26 @@ const handleConfirmLink = async (targetUrl: string) => {
                     </thead>
                     <tbody>
                       {sec.items.map((r) => (
-                        <tr
-                          key={r.label}
-                          className="border-b last:border-0 border-white/15"
-                        >
-                          <td className="py-2 px-2">{r.label}</td>
-                          <td className="py-2 px-2 text-right">
-                            {r.g7 ?? "–"}
-                            {r.g7 && (
-                              <button
-                                onClick={() =>
-                                  handleBuy(r.label + " BH7", r.g7!)
-                                }
-                                disabled={loading}
-                                className="ml-2 bg-white/20 hover:bg-white/30 text-xs px-2 py-1 rounded-md"
-                              >
-                                Đặt ngay
-                              </button>
-                            )}
+                        <tr key={r.label} className="border-b last:border-0 border-white/15">
+                          <td className="py-2 px-2 align-middle">{r.label}</td>
+
+                          {/* Giá + Order cùng dòng, không wrap */}
+                          <td className="py-2 px-2 text-right align-middle">
+                            <div className="flex items-center justify-end gap-2 flex-nowrap">
+                              <span className="whitespace-nowrap">{r.g7 ?? "–"}</span>
+                              {r.g7 && (
+                                <ActionBtn onClick={() => handleBuy(r.label + " BH7", r.g7!)} disabled={loading} />
+                              )}
+                            </div>
                           </td>
-                          <td className="py-2 px-2 text-right">
-                            {r.g30 ?? "–"}
-                            {r.g30 && (
-                              <button
-                                onClick={() =>
-                                  handleBuy(r.label + " BH30", r.g30!)
-                                }
-                                disabled={loading}
-                                className="ml-2 bg-white/20 hover:bg-white/30 text-xs px-2 py-1 rounded-md"
-                              >
-                                Đặt ngay
-                              </button>
-                            )}
+
+                          <td className="py-2 px-2 text-right align-middle">
+                            <div className="flex items-center justify-end gap-2 flex-nowrap">
+                              <span className="whitespace-nowrap">{r.g30 ?? "–"}</span>
+                              {r.g30 && (
+                                <ActionBtn onClick={() => handleBuy(r.label + " BH30", r.g30!)} disabled={loading} />
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -299,35 +277,24 @@ const handleConfirmLink = async (targetUrl: string) => {
 
                 {/* 🌍 FOLLOW GLOBAL */}
                 {sec.kind === "follow_global" && (
-                  <table className="w-full text-[13px] sm:text-sm tabular-nums">
+                  <table className="w-full text-[13px] sm:text-sm tabular-nums border-collapse min-w-[340px]">
                     <thead className="bg-white/10 font-semibold">
                       <tr>
                         <th className="py-2 px-3 text-left">Follow</th>
-                        <th className="py-2 px-3 text-right">
-                          Bảo hành 1 tháng
-                        </th>
+                        <th className="py-2 px-3 text-right">Bảo hành 1 tháng</th>
                       </tr>
                     </thead>
                     <tbody>
                       {sec.items.map((r) => (
-                        <tr
-                          key={r.label}
-                          className="border-b last:border-0 border-white/15"
-                        >
-                          <td className="py-2.5 px-3">{r.label}</td>
-                          <td className="py-2.5 px-3 text-right">
-                            {r.g30 ?? r.value ?? "–"}
-                            {(r.g30 || r.value) && (
-                              <button
-                                onClick={() =>
-                                  handleBuy(r.label, r.g30 ?? r.value ?? "")
-                                }
-                                disabled={loading}
-                                className="ml-2 bg-white/20 hover:bg-white/30 text-xs px-2 py-1 rounded-md"
-                              >
-                                Đặt ngay
-                              </button>
-                            )}
+                        <tr key={r.label} className="border-b last:border-0 border-white/15">
+                          <td className="py-2 px-3 align-middle">{r.label}</td>
+                          <td className="py-2 px-3 text-right align-middle">
+                            <div className="flex items-center justify-end gap-2 flex-nowrap">
+                              <span className="whitespace-nowrap">{r.g30 ?? r.value ?? "–"}</span>
+                              {(r.g30 || r.value) && (
+                                <ActionBtn onClick={() => handleBuy(r.label, r.g30 ?? r.value ?? "")} disabled={loading} />
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -337,25 +304,18 @@ const handleConfirmLink = async (targetUrl: string) => {
 
                 {/* ❤️ SIMPLE */}
                 {sec.kind === "simple" && (
-                  <table className="w-full text-[13px] sm:text-sm tabular-nums">
+                  <table className="w-full text-[13px] sm:text-sm tabular-nums border-collapse min-w-[320px]">
                     <tbody>
                       {sec.items.map((r) => (
-                        <tr
-                          key={r.label}
-                          className="border-b last:border-0 border-white/15"
-                        >
-                          <td className="py-2.5 px-3">{r.label}</td>
-                          <td className="py-2.5 px-3 text-right">
-                            {r.value ?? "–"}
-                            {r.value && (
-                              <button
-                                onClick={() => handleBuy(r.label, r.value!)}
-                                disabled={loading}
-                                className="ml-2 bg-white/20 hover:bg-white/30 text-xs px-2 py-1 rounded-md"
-                              >
-                                Đặt ngay
-                              </button>
-                            )}
+                        <tr key={r.label} className="border-b last:border-0 border-white/15">
+                          <td className="py-2 px-3 align-middle">{r.label}</td>
+                          <td className="py-2 px-3 text-right align-middle">
+                            <div className="flex items-center justify-end gap-2 flex-nowrap">
+                              <span className="whitespace-nowrap">{r.value ?? "–"}</span>
+                              {r.value && (
+                                <ActionBtn onClick={() => handleBuy(r.label, r.value!)} disabled={loading} />
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -380,7 +340,7 @@ const handleConfirmLink = async (targetUrl: string) => {
   );
 
   // ===========================
-  // 🟣 GIAO DIỆN CHÍNH
+  // 🟣 PAGE
   // ===========================
   return (
     <>
@@ -393,20 +353,11 @@ const handleConfirmLink = async (targetUrl: string) => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="h-8 w-8 rounded-xl bg-gradient-to-tr from-pink-500 to-purple-600" />
-              <Link
-                href="/"
-                className="font-bold tracking-tight text-slate-900 dark:text-white"
-              >
-                LameaLux
-              </Link>
+              <Link href="/" className="font-bold tracking-tight text-slate-900 dark:text-white">LameaLux</Link>
             </div>
             <nav className="flex items-center gap-3 text-sm sm:gap-4 sm:text-base font-medium text-slate-700 dark:text-slate-200">
-              <Link href="/" className="hover:underline">
-                Deals
-              </Link>
-              <Link href="/social" className="underline font-semibold">
-                Tăng follow
-              </Link>
+              <Link href="/" className="hover:underline">Deals</Link>
+              <Link href="/social" className="underline font-semibold">Tăng follow</Link>
             </nav>
           </div>
         </header>
@@ -432,39 +383,32 @@ const handleConfirmLink = async (targetUrl: string) => {
         </main>
       </div>
 
-      
-    {/* Modal nhập link */}
-    {showModal && (
-      <LinkModal
-        open={showModal}
-        onClose={() => setShowModal(false)}
-        onConfirm={handleConfirmLink}
-      />
-    )}
+      {/* Modal nhập link */}
+      {showModal && (
+        <LinkModal
+          open={showModal}
+          onClose={() => setShowModal(false)}
+          onConfirm={handleConfirmLink}
+        />
+      )}
 
-{showQR && currentOrder && (
-  <BankQRModal
-    open={showQR}
-    orderId={currentOrder.id}
-    amountVnd={currentOrder.amount}
-    onClose={() => setShowQR(false)}
-    onConfirmed={() => {
-      // (tuỳ chọn) cập nhật trạng thái đơn
-      fetch(`/api/orders/${currentOrder.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "paid_pending_verify" }),
-      }).catch(() => {});
-
-      setShowQR(false);
-    }}
-  />
-)}
-
-
-
-    
+      {/* Modal VietQR */}
+      {showQR && currentOrder && (
+        <BankQRModal
+          open={showQR}
+          orderId={currentOrder.id}
+          amountVnd={currentOrder.amount}
+          onClose={() => setShowQR(false)}
+          onConfirmed={() => {
+            fetch(`/api/orders/${currentOrder.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ status: "paid_pending_verify" }),
+            }).catch(() => {});
+            setShowQR(false);
+          }}
+        />
+      )}
     </>
   );
 }
-
