@@ -1,9 +1,10 @@
-// pages/social.tsx
 import Head from "next/head";
 import Link from "next/link";
+import { useState } from "react";
+import LinkModal from "@/components/LinkModal";
+import BankQRModal from "@/components/BankQRModal";
 
 type Row = { label: string; value?: string; g7?: string; g30?: string };
-
 type SectionCommon = { title: string };
 type SectionFollowVN = SectionCommon & { kind: "follow_vn"; items: Row[] };
 type SectionFollowGL = SectionCommon & { kind: "follow_global"; items: Row[] };
@@ -18,6 +19,67 @@ type Platform = {
 };
 
 export default function Social() {
+  const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+const [pendingItem, setPendingItem] = useState<{ label: string; price: string } | null>(null);
+const [showQR, setShowQR] = useState(false);
+const [currentOrder, setCurrentOrder] = useState<{ id: string; amount: number } | null>(null);
+
+
+  // ⚙️ Hàm xử lý khi bấm “Đặt ngay”
+// ⚙️ Hàm xử lý khi bấm “Đặt ngay” (có hỏi link trước)
+const handleBuy = (label: string, price: string) => {
+  setPendingItem({ label, price });
+  setShowModal(true);
+};
+
+// Sau khi nhập link xong -> chỉ VietQR
+const handleConfirmLink = async (targetUrl: string) => {
+  if (!pendingItem) return;
+  const { label, price } = pendingItem;
+
+  try {
+    setLoading(true);
+    setShowModal(false);
+
+    const cleanPrice = parseInt(price.replace(/\D/g, ""), 10);
+
+    // 1) Tạo order
+    const orderRes = await fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        service_code: label,
+        price_vnd: cleanPrice,
+        target_url: targetUrl,
+        payment_method: "bank_transfer",        // (tùy) ghi nhận phương thức
+      }),
+    });
+
+    const orderData = await orderRes.json();
+    if (!orderRes.ok) throw new Error(orderData?.error || "Tạo đơn thất bại");
+    const order_id = orderData.order_id;
+
+    // 2) Mở modal VietQR cho đơn vừa tạo
+    setCurrentOrder({ id: order_id, amount: cleanPrice });
+    setShowQR(true);
+  } catch (err: any) {
+    console.error(err);
+    alert(err.message || "Có lỗi xảy ra");
+  } finally {
+    setLoading(false);
+    setPendingItem(null);
+  }
+};
+
+
+
+
+
+  // ===========================
+  // 🟣 DỮ LIỆU BẢNG GIÁ
+  // ===========================
+
   const instagram: Platform = {
     name: "Instagram 📸",
     color: "from-pink-500 to-purple-600",
@@ -152,17 +214,25 @@ export default function Social() {
 
   const platforms: Platform[] = [instagram, tiktok, facebook];
 
+  
+
+  // ===========================
+  // 🟣 COMPONENT CARD
+  // ===========================
   const Card = ({ pf }: { pf: Platform }) => (
     <section
       className={`rounded-3xl overflow-hidden shadow-md border border-black/5 dark:border-white/10 bg-gradient-to-r ${pf.color} text-white`}
     >
       <div className="p-4 sm:p-6 md:p-8">
         <div className="text-center mb-5">
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{pf.name}</h2>
-          {pf.desc && <p className="mt-1 text-xs sm:text-sm opacity-90">{pf.desc}</p>}
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            {pf.name}
+          </h2>
+          {pf.desc && (
+            <p className="mt-1 text-xs sm:text-sm opacity-90">{pf.desc}</p>
+          )}
         </div>
 
-        {/* ✅ Mobile 1 cột, md trở lên 2 cột */}
         <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2">
           {pf.sections.map((sec, i) => (
             <article
@@ -170,89 +240,123 @@ export default function Social() {
               className="rounded-2xl bg-white/10 ring-1 ring-white/10 backdrop-blur-sm overflow-hidden"
             >
               <div className="px-3 sm:px-4 py-2.5 border-b border-white/15">
-                <h3 className="font-semibold text-sm sm:text-base">{sec.title}</h3>
+                <h3 className="font-semibold text-sm sm:text-base">
+                  {sec.title}
+                </h3>
               </div>
 
-              <div className="overflow-x-auto">
-              {sec.kind === "follow_vn" && (
-  // ❌ bỏ kéo ngang, bảng luôn fit màn
-  <div className="overflow-x-hidden">
-    <table className="w-full table-fixed text-[12px] sm:text-[15px] tabular-nums border-collapse">
-      {/* Chia tỉ lệ cột để không bị ép chữ */}
-      <colgroup>
-        <col className="w-[40%]" />   {/* Follow */}
-        <col className="w-[30%]" />   {/* 7 ngày */}
-        <col className="w-[30%]" />   {/* 1 tháng */}
-      </colgroup>
-
-      <thead className="bg-white/10 font-semibold">
-        <tr>
-          <th className="py-2 px-2 sm:px-3 text-left whitespace-nowrap">Follow</th>
-
-          {/* 👉 Rút gọn tiêu đề ở mobile, full ở sm+ */}
-          <th className="py-2 px-2 sm:px-3 text-right whitespace-nowrap">
-            <span className="sm:hidden">BH 7 ngày</span>
-            <span className="hidden sm:inline">Bảo hành 7 ngày</span>
-          </th>
-          <th className="py-2 px-2 sm:px-3 text-right whitespace-nowrap">
-            <span className="sm:hidden">BH 1 tháng</span>
-            <span className="hidden sm:inline">Bảo hành 1 tháng</span>
-          </th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {sec.items.map((r) => (
-          <tr key={r.label} className="border-b last:border-0 border-white/15">
-            {/* giữ 1 dòng nhưng giảm padding để vừa màn */}
-            <td className="py-2.5 px-2 sm:px-3 text-left whitespace-nowrap">
-              {r.label}
-            </td>
-            <td className="py-2.5 px-2 sm:px-3 text-right font-semibold whitespace-nowrap">
-              {r.g7 ?? "–"}
-            </td>
-            <td className="py-2.5 px-2 sm:px-3 text-right font-extrabold whitespace-nowrap">
-              {r.g30 ?? "–"}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-)}
-
-
-
-{sec.kind === "follow_global" && (
-  <table className="w-full min-w-[260px] text-[13px] sm:text-sm tabular-nums">
-    <thead className="font-semibold bg-white/10">
-      <tr>
-        <th className="py-2 px-3 text-left">Follow</th>
-        <th className="py-2 px-3 text-right whitespace-nowrap">Bảo hành 1 tháng</th>
-      </tr>
-    </thead>
-    <tbody>
-      {sec.items.map((r) => (
-        <tr key={r.label} className="border-b last:border-0 border-white/15">
-          <td className="py-2.5 px-3">{r.label}</td>
-          {/* 👇 đọc g30, fallback về value nếu data cũ */}
-          <td className="py-2.5 px-3 text-right font-extrabold whitespace-nowrap">
-            {r.g30 ?? r.value ?? "–"}
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-)}
-
-
-                {sec.kind === "simple" && (
-                  <table className="w-full min-w-[260px] text-[13px] sm:text-sm tabular-nums">
+              <div className="overflow-x-hidden">
+                {/* 🇻🇳 FOLLOW VN */}
+                {sec.kind === "follow_vn" && (
+                  <table className="w-full text-[12px] sm:text-[15px] tabular-nums border-collapse">
+                    <thead className="bg-white/10 font-semibold">
+                      <tr>
+                        <th className="py-2 px-2 text-left">Follow</th>
+                        <th className="py-2 px-2 text-right">BH 7 ngày</th>
+                        <th className="py-2 px-2 text-right">BH 1 tháng</th>
+                      </tr>
+                    </thead>
                     <tbody>
                       {sec.items.map((r) => (
-                        <tr key={r.label} className="border-b last:border-0 border-white/15">
+                        <tr
+                          key={r.label}
+                          className="border-b last:border-0 border-white/15"
+                        >
+                          <td className="py-2 px-2">{r.label}</td>
+                          <td className="py-2 px-2 text-right">
+                            {r.g7 ?? "–"}
+                            {r.g7 && (
+                              <button
+                                onClick={() =>
+                                  handleBuy(r.label + " BH7", r.g7!)
+                                }
+                                disabled={loading}
+                                className="ml-2 bg-white/20 hover:bg-white/30 text-xs px-2 py-1 rounded-md"
+                              >
+                                Đặt ngay
+                              </button>
+                            )}
+                          </td>
+                          <td className="py-2 px-2 text-right">
+                            {r.g30 ?? "–"}
+                            {r.g30 && (
+                              <button
+                                onClick={() =>
+                                  handleBuy(r.label + " BH30", r.g30!)
+                                }
+                                disabled={loading}
+                                className="ml-2 bg-white/20 hover:bg-white/30 text-xs px-2 py-1 rounded-md"
+                              >
+                                Đặt ngay
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+
+                {/* 🌍 FOLLOW GLOBAL */}
+                {sec.kind === "follow_global" && (
+                  <table className="w-full text-[13px] sm:text-sm tabular-nums">
+                    <thead className="bg-white/10 font-semibold">
+                      <tr>
+                        <th className="py-2 px-3 text-left">Follow</th>
+                        <th className="py-2 px-3 text-right">
+                          Bảo hành 1 tháng
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sec.items.map((r) => (
+                        <tr
+                          key={r.label}
+                          className="border-b last:border-0 border-white/15"
+                        >
                           <td className="py-2.5 px-3">{r.label}</td>
-                          <td className="py-2.5 px-3 text-right font-extrabold whitespace-nowrap">{r.value}</td>
+                          <td className="py-2.5 px-3 text-right">
+                            {r.g30 ?? r.value ?? "–"}
+                            {(r.g30 || r.value) && (
+                              <button
+                                onClick={() =>
+                                  handleBuy(r.label, r.g30 ?? r.value ?? "")
+                                }
+                                disabled={loading}
+                                className="ml-2 bg-white/20 hover:bg-white/30 text-xs px-2 py-1 rounded-md"
+                              >
+                                Đặt ngay
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+
+                {/* ❤️ SIMPLE */}
+                {sec.kind === "simple" && (
+                  <table className="w-full text-[13px] sm:text-sm tabular-nums">
+                    <tbody>
+                      {sec.items.map((r) => (
+                        <tr
+                          key={r.label}
+                          className="border-b last:border-0 border-white/15"
+                        >
+                          <td className="py-2.5 px-3">{r.label}</td>
+                          <td className="py-2.5 px-3 text-right">
+                            {r.value ?? "–"}
+                            {r.value && (
+                              <button
+                                onClick={() => handleBuy(r.label, r.value!)}
+                                disabled={loading}
+                                className="ml-2 bg-white/20 hover:bg-white/30 text-xs px-2 py-1 rounded-md"
+                              >
+                                Đặt ngay
+                              </button>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -275,6 +379,9 @@ export default function Social() {
     </section>
   );
 
+  // ===========================
+  // 🟣 GIAO DIỆN CHÍNH
+  // ===========================
   return (
     <>
       <Head>
@@ -282,30 +389,34 @@ export default function Social() {
       </Head>
 
       <div className="min-h-screen bg-gradient-to-br from-[#E4ECFF] via-[#F6F4FF] to-[#F9FBFF] dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-        {/* Header */}
         <header className="sticky top-0 z-30 backdrop-blur bg-white/60 dark:bg-slate-900/60 border-b border-black/5 dark:border-white/10">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-    <div className="flex items-center gap-3">
-      <span className="h-8 w-8 rounded-xl bg-gradient-to-tr from-pink-500 to-purple-600" />
-      <Link href="/" className="font-bold tracking-tight text-slate-900 dark:text-white">LameaLux</Link>
-    </div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="h-8 w-8 rounded-xl bg-gradient-to-tr from-pink-500 to-purple-600" />
+              <Link
+                href="/"
+                className="font-bold tracking-tight text-slate-900 dark:text-white"
+              >
+                LameaLux
+              </Link>
+            </div>
+            <nav className="flex items-center gap-3 text-sm sm:gap-4 sm:text-base font-medium text-slate-700 dark:text-slate-200">
+              <Link href="/" className="hover:underline">
+                Deals
+              </Link>
+              <Link href="/social" className="underline font-semibold">
+                Tăng follow
+              </Link>
+            </nav>
+          </div>
+        </header>
 
-    {/* 👇 đổi hidden sm:flex -> flex sm:flex */}
-    <nav className="flex items-center gap-3 text-sm sm:gap-4 sm:text-base font-medium text-slate-700 dark:text-slate-200">
-      <Link href="/" className="hover:underline">Deals</Link>
-      <Link href="/social" className="underline font-semibold">Tăng follow</Link>
-    </nav>
-  </div>
-</header>
-
-
-        {/* Body */}
         <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
           <h1 className="text-center text-3xl sm:text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-blue-600">
             Bảng giá dịch vụ 💬
           </h1>
           <p className="mt-2 text-center text-slate-600 dark:text-slate-300 text-sm sm:text-base">
-            Tự tin gần 10 năm trong lĩnh vực tăng tương tác mạng xã hội
+            Tự tin gần 10 năm trong lĩnh vực tăng tương tác mạng xã hội <br />
             Zalo/Call/Sms: 0909 172 556
           </p>
 
@@ -320,6 +431,40 @@ export default function Social() {
           </footer>
         </main>
       </div>
+
+      
+    {/* Modal nhập link */}
+    {showModal && (
+      <LinkModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        onConfirm={handleConfirmLink}
+      />
+    )}
+
+{showQR && currentOrder && (
+  <BankQRModal
+    open={showQR}
+    orderId={currentOrder.id}
+    amountVnd={currentOrder.amount}
+    onClose={() => setShowQR(false)}
+    onConfirmed={() => {
+      // (tuỳ chọn) cập nhật trạng thái đơn
+      fetch(`/api/orders/${currentOrder.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "paid_pending_verify" }),
+      }).catch(() => {});
+
+      setShowQR(false);
+    }}
+  />
+)}
+
+
+
+    
     </>
   );
 }
+
