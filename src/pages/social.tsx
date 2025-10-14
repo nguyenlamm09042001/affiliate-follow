@@ -403,7 +403,7 @@ export default function Social() {
             fetch(`/api/orders/${currentOrder.id}`, {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ status: "processing" }),
+              body: JSON.stringify({ status: "paid_pending_verify" }),
             }).catch(() => {});
             setShowQR(false);
           }}

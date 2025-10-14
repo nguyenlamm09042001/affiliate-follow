@@ -17,18 +17,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!, // service role (server only)
       { auth: { persistSession: false } }
     );
 
     const {
       service_code,
-      price_vnd,         // number
-      target_url,        // string
-      payment_method,    // string | null
-      guest_id,          // optional
-      contact_email,     // optional
-      note               // optional
+      price_vnd,       // number
+      target_url,      // string
+      payment_method,  // optional
+      guest_id,
+      contact_email,
+      note
     } = (req.body || {}) as any;
 
     if (!service_code || !price_vnd || !target_url) {
