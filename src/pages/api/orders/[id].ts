@@ -25,9 +25,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: `Status không hợp lệ: ${status}` });
       }
       patch.status = status;
+      patch.transfer_submitted_at = new Date().toISOString();
     }
     if (transfer_note !== undefined) patch.transfer_note = transfer_note;
-    if (status) patch.transfer_submitted_at = new Date().toISOString();
 
     const { error } = await supabase.from("orders").update(patch).eq("id", id);
     if (error) {

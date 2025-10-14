@@ -21,45 +21,66 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       { auth: { persistSession: false } }
     );
 
-    const {
-      service_code,
-      price_vnd,       // number
-      target_url,      // string
-      payment_method,  // optional
-      guest_id,
-      contact_email,
-      note
-    } = (req.body || {}) as any;
+    // đọc body an toàn
+    const b = (req.body || {}) as any;
+    const service_code: string | undefined = b.service_code;
+    const price_vnd: number | undefined =
+      typeof b.price_vnd === "number" ? b.price_vnd : parseInt(String(b.price_vnd ?? "").replace(/\D/g, ""), 10);
+    const target_url: string | undefined = b.target_url;
+    const payment_method: string | undefined = b.payment_method ?? "bank_transfer";
 
     if (!service_code || !price_vnd || !target_url) {
       return res.status(400).json({ error: "Thiếu dữ liệu" });
     }
 
-    const { data, error } = await supabase
-      .from("orders")
-      .insert({
-        service_code,
-        target_url,
-        payment_method: payment_method ?? "bank_transfer",
-        subtotal_vnd: price_vnd,
-        discount_vnd: 0,
-        total_vnd: price_vnd,
-        guest_id: guest_id ?? null,
-        contact_email: contact_email ?? null,
-        note: note ?? null,
-        status: "pending",
-      })
-      .select("id")
-      .single();
+    // 1) Insert
+    const insertRes = await supbaseInsert(supabase, {
+      service_code,
+      target_url,
+      payment_method,
+      subtotal_vnd: price_vnd,
+      discount_vnd: 0,
+      total_vnd: price_vnd,
+      status: "pending",
+    });
 
-    if (error) {
-      console.error("Supabase insert error:", error);
-      return res.status(500).json({ error: error.message || "Supabase error" });
+    if (!insertRes.ok) {
+      console.error("Supabase insert error:", insertRes.error);
+      return res.status(500).json({ error: insertRes.error });
     }
 
-    return res.status(200).json({ order_id: data!.id });
+    // 2) Trả về 201 + id (không dùng .single() để tránh edge-case trả lỗi)
+    return res.status(201).json({ order_id: insertRes.id });
   } catch (e: any) {
     console.error("POST /api/orders error:", e?.message || e);
     return res.status(500).json({ error: e?.message || "Internal error" });
   }
+}
+
+// Helper: chèn rồi lấy id theo cách an toàn
+async function supbaseInsert(supabase: any, row: any): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  // Cách 1: insert + select representation (ít lỗi)
+  const { data, error } = await supabase
+    .from("orders")
+    .insert(row)
+    .select("id")
+    .maybeSingle(); // an toàn hơn .single()
+
+  if (error) return { ok: false, error: error.message || "Supabase error" };
+  if (data?.id) return { ok: true, id: data.id };
+
+  // Cách 2 (fallback hiếm khi cần): truy vấn lại 1 bản ghi vừa tạo
+  const { data: again, error: e2 } = await supabase
+    .from("orders")
+    .select("id")
+    .eq("service_code", row.service_code)
+    .eq("target_url", row.target_url)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (e2) return { ok: false, error: e2.message || "Supabase error" };
+  if (again?.id) return { ok: true, id: again.id };
+
+  return { ok: false, error: "Không lấy được order_id sau khi insert" };
 }
