@@ -14,9 +14,11 @@ export default async function handler(_: NextApiRequest, res: NextApiResponse) {
       });
     }
 
+    // ✅ Đổi `active` → alias từ `is_active`
     const endpoint =
       `${baseUrl}/rest/v1/deals` +
-      `?select=id,slug,name,price,old_price,image,category,active,affiliate_link,updated_at` +
+      `?select=id,slug,name,price,old_price,image,category,active:is_active,affiliate_link,updated_at` +
+      `&is_active=eq.true` + // lọc chỉ lấy deal đang active
       `&order=updated_at.desc&limit=100`;
 
     const r = await fetch(endpoint, {
@@ -38,11 +40,13 @@ export default async function handler(_: NextApiRequest, res: NextApiResponse) {
     }
 
     const data = text ? JSON.parse(text) : [];
-    // nhẹ nhàng cache CDN 15s
+
+    // ✅ Cache CDN nhẹ 15s để tránh spam Supabase
     res.setHeader("Cache-Control", "s-maxage=15, stale-while-revalidate=60");
+
+    // FE đang đọc data.items nên wrap đúng key
     return res.status(200).json({ items: data });
   } catch (e: any) {
-    // log nguyên nhân mạng nếu có
     return res.status(500).json({
       error: "fetch_failed",
       message: String(e?.message || e),
